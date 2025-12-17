@@ -13,24 +13,24 @@ import UIKit
 
 struct ContentView: View {
   @State private var projects: [Project] = []
-
+  
   var body: some View {
     TabView {
       HomeView(projects: $projects)
         .tabItem {
           Label("首頁", systemImage: "house")
         }
-
+      
       DailyPickView(projects: $projects)
         .tabItem {
           Label("精選", systemImage: "sparkles")
         }
-
+      
       Text("待紀錄事項（待完成）")
         .tabItem {
           Label("待辦", systemImage: "checklist")
         }
-
+      
       Text("設定（待完成）")
         .tabItem {
           Label("設定", systemImage: "gear")
@@ -44,7 +44,7 @@ struct ContentView: View {
 struct DailyPickView: View {
   @Binding var projects: [Project]
   @State private var pickedProjectID: UUID? = nil
-
+  
   private var pickedProject: Project? {
     guard !projects.isEmpty else { return nil }
     if let id = pickedProjectID, let p = projects.first(where: { $0.id == id }) {
@@ -52,7 +52,7 @@ struct DailyPickView: View {
     }
     return nil
   }
-
+  
   var body: some View {
     NavigationStack {
       Group {
@@ -60,7 +60,7 @@ struct DailyPickView: View {
           VStack(spacing: 10) {
             Text("建立你的第ㄧ個專案！")
               .font(.headline)
-
+            
             Text("到『首頁』點右上角 ＋ 新增")
               .font(.subheadline)
               .foregroundStyle(.secondary)
@@ -97,12 +97,12 @@ struct DailyPickView: View {
                         }
                       }
                   }
-
+                  
                   VStack(alignment: .leading, spacing: 6) {
                     Text(project.name)
                       .font(.title2)
                       .bold()
-
+                    
                     Text(project.category ?? "未分類")
                       .font(.subheadline)
                       .foregroundStyle(.secondary)
@@ -111,7 +111,7 @@ struct DailyPickView: View {
                 }
               }
               .buttonStyle(.plain)
-
+              
               Button {
                 // 重新抽一個不同的（若只有 1 個就維持原本）
                 if projects.count <= 1 {
@@ -129,7 +129,7 @@ struct DailyPickView: View {
               }
               .padding(.top, 4)
             }
-
+            
             Spacer(minLength: 0)
           }
           .padding()
@@ -154,19 +154,19 @@ struct DailyPickView: View {
 /// - Models/Project.swift
 struct HomeView: View {
   @Binding var projects: [Project]
-
+  
   @State private var searchText: String = ""
   @State private var sortOption: SortOption = .byCreatedDesc
   @State private var selectedCategory: String = "全部"
-
+  
   private var availableCategories: [String] {
     let cats = Set(projects.compactMap { $0.category?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })
     return ["全部"] + cats.sorted()
   }
-
+  
   private var filteredProjects: [Project] {
     let key = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-
+    
     let base = projects
       .filter { p in
         // Category filter
@@ -178,7 +178,7 @@ struct HomeView: View {
         return p.name.localizedCaseInsensitiveContains(key)
         || (p.category?.localizedCaseInsensitiveContains(key) ?? false)
       }
-
+    
     switch sortOption {
     case .byCreatedDesc:
       return base.sorted { $0.createdAt > $1.createdAt }
@@ -188,7 +188,7 @@ struct HomeView: View {
       return base.sorted { ($0.category ?? "未分類") < ($1.category ?? "未分類") }
     }
   }
-
+  
   private var groupedProjects: [(category: String, items: [Project])] {
     // 如果選了特定分類，就只顯示那一組；如果選「全部」，同分類排在一起（用 Section）。
     let dict = Dictionary(grouping: filteredProjects, by: { $0.category ?? "未分類" })
@@ -197,7 +197,7 @@ struct HomeView: View {
       (category: key, items: dict[key] ?? [])
     }
   }
-
+  
   var body: some View {
     NavigationStack {
       List {
@@ -205,7 +205,7 @@ struct HomeView: View {
           VStack(spacing: 12) {
             Text("目前尚無專案")
               .font(.headline)
-
+            
             Text("請點右上角 ＋ 新增第一個專案")
               .font(.subheadline)
               .foregroundStyle(.secondary)
@@ -253,7 +253,7 @@ struct HomeView: View {
                 }
               }
             }
-
+            
             Section("排序") {
               Picker("排序", selection: $sortOption) {
                 Text("建立時間（新→舊）").tag(SortOption.byCreatedDesc)
@@ -270,7 +270,7 @@ struct HomeView: View {
             }
           }
         }
-
+        
         ToolbarItem(placement: .topBarTrailing) {
           Button {
             isPresentingAdd = true
@@ -288,33 +288,33 @@ struct HomeView: View {
       }
     }
   }
-
+  
   private func deleteProjects(at offsets: IndexSet) {
     // 單一 Section（例如選特定分類）時可直接用 filteredProjects 對應回原陣列
     let idsToDelete = offsets.map { filteredProjects[$0].id }
     projects.removeAll { idsToDelete.contains($0.id) }
   }
-
+  
   private func deleteProjects(in sectionItems: [Project], at offsets: IndexSet) {
     let idsToDelete = offsets.map { sectionItems[$0].id }
     projects.removeAll { idsToDelete.contains($0.id) }
   }
-
+  
   @State private var isPresentingAdd: Bool = false
 }
 
 struct ProjectRowView: View {
   let project: Project
-
+  
   var body: some View {
     HStack(spacing: 12) {
-      Image(systemName: "leaf")
+      Image(systemName: project.symbolName)
         .imageScale(.large)
-
+      
       VStack(alignment: .leading, spacing: 4) {
         Text(project.name)
           .font(.headline)
-
+        
         Text(project.createdAt, style: .date)
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -328,18 +328,28 @@ struct ProjectRowView: View {
 
 struct AddProjectSheet: View {
   @Environment(\.dismiss) private var dismiss
-
+  
   @State private var name: String = ""
   @State private var category: String = ""
-
+  @State private var symbolName: String = "leaf"
+  
+  private let symbolOptions: [String] = ["leaf", "tree", "camera.macro"]
+  
   var onAdd: (Project) -> Void
-
+  
   var body: some View {
     NavigationStack {
       Form {
         Section("專案資訊") {
           TextField("專案名稱（必填）", text: $name)
           TextField("分類（可選）", text: $category)
+          
+          Picker("圖示", selection: $symbolName) {
+            ForEach(symbolOptions, id: \.self) { symbol in
+              Image(systemName: symbol)
+                .tag(symbol)
+            }
+          }
         }
       }
       .navigationTitle("新增專案")
@@ -353,7 +363,8 @@ struct AddProjectSheet: View {
             let trimmedCategory = category.trimmingCharacters(in: .whitespacesAndNewlines)
             let project = Project(
               name: trimmedName,
-              category: trimmedCategory.isEmpty ? nil : trimmedCategory
+              category: trimmedCategory.isEmpty ? nil : trimmedCategory,
+              symbolName: symbolName
             )
             onAdd(project)
             dismiss()
@@ -370,36 +381,36 @@ struct AddProjectSheet: View {
 struct ProjectDetailView: View {
   let projectID: UUID
   @Binding var projects: [Project]
-
+  
   @State private var isShowingAddMenu: Bool = false
   @State private var isShowingPhotosPicker: Bool = false
   @State private var isShowingCamera: Bool = false
-
+  
   @State private var pickedItem: PhotosPickerItem? = nil
   @State private var pendingImage: UIImage? = nil
   @State private var pendingShotDate: Date = Date()
   @State private var isShowingConfirmSheet: Bool = false
-
+  
   private var projectIndex: Int? {
     projects.firstIndex(where: { $0.id == projectID })
   }
-
+  
   private var currentProject: Project? {
     guard let idx = projectIndex, projects.indices.contains(idx) else { return nil }
     return projects[idx]
   }
-
+  
   private var projectName: String {
     currentProject?.name ?? "專案"
   }
-
+  
   private func sortedRecords(for project: Project) -> [PhotoRecord] {
     let recs = project.records
     return recs.sorted { (lhs, rhs) in
       lhs.shotDate > rhs.shotDate
     }
   }
-
+  
   var body: some View {
     Group {
       if let project = currentProject {
@@ -499,12 +510,12 @@ struct ProjectDetailView: View {
 
 struct PhotoGridView: View {
   let records: [PhotoRecord]
-
+  
   private let columns: [GridItem] = [
     GridItem(.flexible(), spacing: 12),
     GridItem(.flexible(), spacing: 12)
   ]
-
+  
   var body: some View {
     LazyVGrid(columns: columns, spacing: 12) {
       ForEach(records) { record in
@@ -525,7 +536,7 @@ struct PhotoGridView: View {
                   .foregroundStyle(.secondary)
               }
           }
-
+          
           Text("拍攝日期：\(record.shotDate.formatted(date: .abbreviated, time: .omitted))")
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -537,13 +548,13 @@ struct PhotoGridView: View {
 
 struct AddRecordConfirmSheet: View {
   @Environment(\.dismiss) private var dismiss
-
+  
   @Binding var image: UIImage?
   @Binding var shotDate: Date
-
+  
   var onSave: (UIImage, Date) -> Void
   var onCancel: () -> Void
-
+  
   var body: some View {
     NavigationStack {
       VStack(spacing: 16) {
@@ -555,13 +566,13 @@ struct AddRecordConfirmSheet: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .padding(.horizontal)
         } else {
-          ContentUnavailableView("沒有選到照片", image:"leaf")
+          ContentUnavailableView("沒有選到照片", image: "leaf")
         }
-
+        
         DatePicker("拍攝日期", selection: $shotDate, displayedComponents: .date)
           .datePickerStyle(.compact)
           .padding(.horizontal)
-
+        
         Spacer(minLength: 0)
       }
       .padding(.top, 8)
@@ -591,10 +602,10 @@ struct AddRecordConfirmSheet: View {
 
 struct CameraPicker: UIViewControllerRepresentable {
   @Environment(\.dismiss) private var dismiss
-
+  
   @Binding var image: UIImage?
   var onDismiss: () -> Void
-
+  
   func makeUIViewController(context: Context) -> UIImagePickerController {
     let picker = UIImagePickerController()
     picker.sourceType = .camera
@@ -602,20 +613,20 @@ struct CameraPicker: UIViewControllerRepresentable {
     picker.allowsEditing = false
     return picker
   }
-
+  
   func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
+  
   func makeCoordinator() -> Coordinator {
     Coordinator(parent: self)
   }
-
+  
   final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
     let parent: CameraPicker
-
+    
     init(parent: CameraPicker) {
       self.parent = parent
     }
-
+    
     func imagePickerController(
       _ picker: UIImagePickerController,
       didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]
@@ -626,7 +637,7 @@ struct CameraPicker: UIViewControllerRepresentable {
       parent.dismiss()
       parent.onDismiss()
     }
-
+    
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
       parent.dismiss()
       parent.onDismiss()
@@ -640,19 +651,22 @@ struct Project: Identifiable, Hashable {
   let id: UUID
   var name: String
   var category: String?
+  var symbolName: String
   var createdAt: Date
   var records: [PhotoRecord]
-
+  
   init(
     id: UUID = UUID(),
     name: String,
     category: String? = nil,
+    symbolName: String = "leaf",
     createdAt: Date = Date(),
     records: [PhotoRecord] = []
   ) {
     self.id = id
     self.name = name
     self.category = category
+    self.symbolName = symbolName
     self.createdAt = createdAt
     self.records = records
   }
@@ -663,7 +677,7 @@ struct PhotoRecord: Identifiable, Hashable {
   var imageData: Data
   var shotDate: Date
   var createdAt: Date
-
+  
   init(id: UUID = UUID(), imageData: Data, shotDate: Date, createdAt: Date = Date()) {
     self.id = id
     self.imageData = imageData
@@ -676,7 +690,7 @@ enum SortOption: String, CaseIterable, Identifiable {
   case byCreatedDesc
   case byNameAsc
   case byCategoryAsc
-
+  
   var id: String { rawValue }
 }
 

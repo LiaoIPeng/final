@@ -31,9 +31,9 @@ struct ContentView: View {
           Label("成果", systemImage: "archivebox")
         }
 
-      Text("設定（待完成）")
+      OverviewView(projects: $projects)
         .tabItem {
-          Label("設定", systemImage: "gear")
+          Label("總覽", systemImage: "gear")
         }
     }
   }
@@ -41,9 +41,114 @@ struct ContentView: View {
 
 // MARK: - Daily Pick
 
+// MARK: - Overview
+
+struct OverviewView: View {
+  @Binding var projects: [Project]
+
+  private var totalProjectsCount: Int {
+    projects.count
+  }
+
+  private var activeProjectsCount: Int {
+    projects.filter { !$0.isArchived }.count
+  }
+
+  private var archivedProjectsCount: Int {
+    projects.filter { $0.isArchived }.count
+  }
+
+  private var totalProfitPositive: Double {
+    // 只把正金額相加（通常來自已歸檔專案）
+    projects
+      .compactMap { $0.profit }
+      .filter { $0 > 0 }
+      .reduce(0, +)
+  }
+
+  private var totalLossPositive: Double {
+    // 把負金額（支出/虧損）轉成正值再相加
+    projects
+      .compactMap { $0.profit }
+      .filter { $0 < 0 }
+      .map { abs($0) }
+      .reduce(0, +)
+  }
+
+  var body: some View {
+    NavigationStack {
+      List {
+        Section {
+          OverviewStatRow(title: "專案總數", value: totalProjectsCount, systemImage: "square.grid.2x2")
+          OverviewStatRow(title: "正在執行的專案", value: activeProjectsCount, systemImage: "leaf")
+          OverviewStatRow(title: "已歸檔專案", value: archivedProjectsCount, systemImage: "archivebox")
+        }
+
+        Section("收益") {
+          OverviewMoneyRow(title: "總獲利", amount: totalProfitPositive, systemImage: "plus.circle")
+          OverviewMoneyRow(title: "總虧損", amount: totalLossPositive, systemImage: "minus.circle")
+        }
+
+        if projects.isEmpty {
+          Section {
+            ContentUnavailableView("開始你的第一個專案吧！", image: "dog")
+              .frame(maxWidth: .infinity, minHeight: 140)
+          }
+        }
+      }
+      .navigationTitle("總覽")
+    }
+  }
+}
+
+private struct OverviewStatRow: View {
+  let title: String
+  let value: Int
+  let systemImage: String
+
+  var body: some View {
+    HStack(spacing: 12) {
+      Image(systemName: systemImage)
+        .imageScale(.large)
+
+      Text(title)
+        .font(.headline)
+
+      Spacer()
+
+      Text("\(value)")
+        .font(.headline)
+    }
+    .padding(.vertical, 4)
+  }
+}
+
+private struct OverviewMoneyRow: View {
+  let title: String
+  let amount: Double
+  let systemImage: String
+
+  var body: some View {
+    HStack(spacing: 12) {
+      Image(systemName: systemImage)
+        .imageScale(.large)
+
+      Text(title)
+        .font(.headline)
+
+      Spacer()
+
+      Text(amount, format: .number)
+        .font(.headline)
+    }
+    .padding(.vertical, 4)
+  }
+}
+
 struct DailyPickView: View {
   @Binding var projects: [Project]
   @State private var pickedProjectID: UUID? = nil
+  @State private var selfScore: Int = 5
 
   private var activeProjects: [Project] {
     projects.filter { !$0.isArchived }
@@ -57,12 +162,21 @@ struct DailyPickView: View {
     return nil
   }
 
+  private var selfScoreBinding: Binding<Double> {
+    Binding(
+      get: { Double(selfScore) },
+      set: { newValue in
+        selfScore = Int(newValue.rounded())
+      }
+    )
+  }
+
   var body: some View {
     NavigationStack {
       Group {
         if activeProjects.isEmpty {
           VStack(spacing: 10) {
-            Text("目前沒有可精選的專案")
+            Text("目前沒有可顯示的專案")
               .font(.headline)
 
             if projects.isEmpty {
@@ -121,24 +235,28 @@ struct DailyPickView: View {
                 }
               }
               .buttonStyle(.plain)
+            }
 
-              Button {
-                // 重新抽一個不同的（若只有 1 個就維持原本）
-                if activeProjects.count <= 1 {
-                  pickedProjectID = activeProjects.first?.id
-                } else {
-                  var next: Project? = nil
-                  repeat {
-                    next = activeProjects.randomElement()
-                  } while next?.id == (pickedProjectID ?? project.id)
-                  pickedProjectID = next?.id
-                }
-              } label: {
-                Text("換一個")
+            VStack(alignment: .leading, spacing: 10) {
+              HStack {
+                Text("給自己一個評分吧！")
+                  .font(.headline)
+                Spacer()
+                Text("\(selfScore) 分")
                   .font(.headline)
               }
-              .padding(.top, 4)
+
+              Slider(value: selfScoreBinding, in: 1...10, step: 1)
+
+              Text("1 分 = 還要再加油；10 分 = 很棒")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
+            .padding(16)
+            .background(
+              RoundedRectangle(cornerRadius: 16)
+                .fill(.secondary.opacity(0.08))
+            )
 
             Spacer(minLength: 0)
           }
@@ -256,7 +374,7 @@ struct HomeView: View {
           }
         }
       }
-      .navigationTitle("首頁")
+      .navigationTitle("花園")
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {
           Menu {
@@ -408,6 +526,9 @@ struct ProjectDetailView: View {
   @State private var pendingShotDate: Date = Date()
   @State private var isShowingConfirmSheet: Bool = false
 
+  @State private var isShowingPhotoViewer: Bool = false
+  @State private var photoViewerIndex: Int = 0
+
   private var projectIndex: Int? {
     projects.firstIndex(where: { $0.id == projectID })
   }
@@ -444,9 +565,12 @@ struct ProjectDetailView: View {
             .frame(maxWidth: .infinity, minHeight: 160)
             .padding(.top, 24)
           } else {
-            PhotoGridView(records: records)
-              .padding(.horizontal)
-              .padding(.top, 12)
+            PhotoGridView(records: records) { tappedIndex in
+              photoViewerIndex = tappedIndex
+              isShowingPhotoViewer = true
+            }
+            .padding(.horizontal)
+            .padding(.top, 12)
           }
         }
       } else {
@@ -501,7 +625,7 @@ struct ProjectDetailView: View {
       if let msg = archiveErrorMessage {
         Text(msg)
       } else {
-        Text("輸入成果金額（可為負數）")
+        Text("這次賺了多少錢（可為負數）")
       }
     }
     .confirmationDialog("新增照片", isPresented: $isShowingAddMenu, titleVisibility: .visible) {
@@ -561,6 +685,13 @@ struct ProjectDetailView: View {
       )
       .presentationDetents([.medium, .large])
     }
+    .fullScreenCover(isPresented: $isShowingPhotoViewer) {
+      if let project = currentProject {
+        PhotoPagerView(records: sortedRecords(for: project), startIndex: photoViewerIndex)
+      } else {
+        ContentUnavailableView("找不到照片", image: "photo")
+      }
+    }
   }
 }
 
@@ -584,7 +715,7 @@ struct ResultsView: View {
       List {
         Section {
           HStack {
-            Text("成果總和")
+            Text("＄＄＄")
               .font(.headline)
             Spacer()
             Text(totalProfit, format: .number)
@@ -646,36 +777,111 @@ struct ResultsRowView: View {
 
 struct PhotoGridView: View {
   let records: [PhotoRecord]
+  var onTap: (Int) -> Void
 
   private let columns: [GridItem] = [
     GridItem(.flexible(), spacing: 12),
     GridItem(.flexible(), spacing: 12)
   ]
 
+  init(records: [PhotoRecord], onTap: @escaping (Int) -> Void = { _ in }) {
+    self.records = records
+    self.onTap = onTap
+  }
+
   var body: some View {
     LazyVGrid(columns: columns, spacing: 12) {
-      ForEach(records) { record in
-        VStack(alignment: .leading, spacing: 6) {
-          if let uiImage = UIImage(data: record.imageData) {
-            Image(uiImage: uiImage)
-              .resizable()
-              .scaledToFill()
-              .frame(height: 140)
-              .clipped()
-              .clipShape(RoundedRectangle(cornerRadius: 12))
-          } else {
-            RoundedRectangle(cornerRadius: 12)
-              .fill(.secondary.opacity(0.2))
-              .frame(height: 140)
-              .overlay {
-                Image(systemName: "photo")
-                  .foregroundStyle(.secondary)
-              }
-          }
+      ForEach(Array(records.enumerated()), id: \.element.id) { index, record in
+        Button {
+          onTap(index)
+        } label: {
+          VStack(alignment: .leading, spacing: 6) {
+            if let uiImage = UIImage(data: record.imageData) {
+              Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(height: 140)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+              RoundedRectangle(cornerRadius: 12)
+                .fill(.secondary.opacity(0.2))
+                .frame(height: 140)
+                .overlay {
+                  Image(systemName: "photo")
+                    .foregroundStyle(.secondary)
+                }
+            }
 
-          Text("拍攝日期：\(record.shotDate.formatted(date: .abbreviated, time: .omitted))")
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Text("拍攝日期：\(record.shotDate.formatted(date: .abbreviated, time: .omitted))")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .buttonStyle(.plain)
+      }
+    }
+  }
+}
+
+struct PhotoPagerView: View {
+  @Environment(\.dismiss) private var dismiss
+
+  let records: [PhotoRecord]
+  let startIndex: Int
+
+  @State private var selection: Int
+
+  init(records: [PhotoRecord], startIndex: Int) {
+    self.records = records
+    self.startIndex = max(0, min(startIndex, records.count - 1))
+    _selection = State(initialValue: max(0, min(startIndex, records.count - 1)))
+  }
+
+  var body: some View {
+    NavigationStack {
+      ZStack {
+        Color.black.ignoresSafeArea()
+
+        if records.isEmpty {
+          ContentUnavailableView("沒有照片", image: "photo")
+        } else {
+          TabView(selection: $selection) {
+            ForEach(records.indices, id: \.self) { idx in
+              let record = records[idx]
+              VStack(spacing: 12) {
+                if let uiImage = UIImage(data: record.imageData) {
+                  Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                  ContentUnavailableView("載入失敗", image: "photo")
+                }
+
+                Text("拍攝日期：\(record.shotDate.formatted(date: .abbreviated, time: .omitted))")
+                  .font(.subheadline)
+                  .foregroundStyle(.white.opacity(0.85))
+                  .padding(.bottom, 16)
+              }
+              .padding(.horizontal)
+              .tag(idx)
+            }
+          }
+          .tabViewStyle(.page(indexDisplayMode: .automatic))
+        }
+      }
+      .navigationTitle(records.isEmpty ? "" : "\(selection + 1)/\(records.count)")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .topBarLeading) {
+          Button {
+            dismiss()
+          } label: {
+            Image(systemName: "xmark")
+              .foregroundStyle(.white)
+          }
+          .accessibilityLabel("關閉")
         }
       }
     }

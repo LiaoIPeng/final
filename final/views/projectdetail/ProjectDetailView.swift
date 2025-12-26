@@ -162,7 +162,7 @@ struct ProjectDetailView: View {
       .ignoresSafeArea()
     }
     .sheet(isPresented: $isShowingConfirmSheet, onDismiss: {
-      // 如果使用者取消而沒有儲存，保留預設即可；如要清除可在這裡做。
+      // 如果使用者取消而沒有儲存，保留預設即可
     }) {
       AddRecordConfirmSheet(
         image: $pendingImage,

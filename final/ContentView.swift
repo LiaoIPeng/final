@@ -20,24 +20,19 @@ struct ContentView: View {
       HomeView(projects: $projects)
         .tabItem { Label("首頁", systemImage: "house") }
 
-      DailyPickView(projects: $projects, dailyScores: $dailyScores)   // ← 改這行
+      DailyPickView(projects: $projects, dailyScores: $dailyScores)
         .tabItem { Label("精選", systemImage: "sparkles") }
 
       ResultsView(projects: $projects)
         .tabItem { Label("成果", systemImage: "archivebox") }
 
-      OverviewView(projects: $projects, dailyScores: $dailyScores)    // ← 改這行
+      OverviewView(projects: $projects, dailyScores: $dailyScores)
         .tabItem { Label("總覽", systemImage: "gear") }
     }
   }
 }
 
 // MARK: - Home (Projects List)
-
-/// NOTE: 目前先把 HomeView / Model 都放在同一個檔案，讓你先跑起來。
-/// 你之後照你的規範把它們拆到：
-/// - Views/Home/HomeView.swift
-/// - Models/Project.swift
 struct HomeView: View {
   @Binding var projects: [Project]
 
@@ -152,7 +147,6 @@ struct HomeView: View {
               }
             }
           } label: {
-            // 左上角顯示目前分類（你說分類要跟 row 分開並放左上）
             HStack(spacing: 6) {
               Image(systemName: "line.3.horizontal.decrease.circle")
               Text(selectedCategory)
@@ -191,59 +185,6 @@ struct HomeView: View {
   }
 
   @State private var isPresentingAdd: Bool = false
-}
-// MARK: - Results (Archived Projects)
-
-struct ResultsView: View {
-  @Binding var projects: [Project]
-
-  private var archivedProjects: [Project] {
-    projects.filter { $0.isArchived }
-  }
-
-  private var totalProfit: Double {
-    archivedProjects.reduce(0) { partial, p in
-      partial + (p.profit ?? 0)
-    }
-  }
-
-  var body: some View {
-    NavigationStack {
-      List {
-        Section {
-          HStack {
-            Text("＄＄＄")
-              .font(.headline)
-            Spacer()
-            Text(totalProfit, format: .number)
-              .font(.headline)
-          }
-        }
-
-        if archivedProjects.isEmpty {
-          VStack(spacing: 12) {
-            Text("目前沒有成果")
-              .font(.headline)
-            Text("到專案詳細頁點『移到成果』即可歸檔")
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-          }
-          .frame(maxWidth: .infinity, minHeight: 160)
-        } else {
-          Section("已歸檔專案") {
-            ForEach(archivedProjects) { project in
-              NavigationLink {
-                ProjectDetailView(projectID: project.id, projects: $projects)
-              } label: {
-                ResultsRowView(project: project)
-              }
-            }
-          }
-        }
-      }
-      .navigationTitle("成果")
-    }
-  }
 }
 
 // MARK: - Daily Pick
@@ -419,6 +360,59 @@ struct DailyPickView: View {
   }
 }
 
+// MARK: - Results (Archived Projects)
+
+struct ResultsView: View {
+  @Binding var projects: [Project]
+
+  private var archivedProjects: [Project] {
+    projects.filter { $0.isArchived }
+  }
+
+  private var totalProfit: Double {
+    archivedProjects.reduce(0) { partial, p in
+      partial + (p.profit ?? 0)
+    }
+  }
+
+  var body: some View {
+    NavigationStack {
+      List {
+        Section {
+          HStack {
+            Text("＄＄＄")
+              .font(.headline)
+            Spacer()
+            Text(totalProfit, format: .number)
+              .font(.headline)
+          }
+        }
+
+        if archivedProjects.isEmpty {
+          VStack(spacing: 12) {
+            Text("目前沒有成果")
+              .font(.headline)
+            Text("到專案詳細頁點『移到成果』即可歸檔")
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+          }
+          .frame(maxWidth: .infinity, minHeight: 160)
+        } else {
+          Section("已歸檔專案") {
+            ForEach(archivedProjects) { project in
+              NavigationLink {
+                ProjectDetailView(projectID: project.id, projects: $projects)
+              } label: {
+                ResultsRowView(project: project)
+              }
+            }
+          }
+        }
+      }
+      .navigationTitle("成果")
+    }
+  }
+}
 
 // MARK: - Overview
 
@@ -463,13 +457,6 @@ struct OverviewView: View {
         Section("每日評分") {
           OverviewMoneyRow(title: "平均分數", amount: dailyScoreAverage, systemImage: "star.circle")
           OverviewStatRow(title: "累計天數", value: dailyScoreCount, systemImage: "calendar")
-        }
-
-        if projects.isEmpty {
-          Section {
-            ContentUnavailableView("開始你的第一個專案吧！", image: "dog")
-              .frame(maxWidth: .infinity, minHeight: 140)
-          }
         }
       }
       .navigationTitle("總覽")

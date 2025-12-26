@@ -5,52 +5,46 @@
 //  Created by 廖逸芃 on 2025/12/26.
 //
 
-
 import SwiftUI
 import PhotosUI
-import UIKit
 
-struct CameraPicker: UIViewControllerRepresentable {
+struct CameraPicker: View {
   @Environment(\.dismiss) private var dismiss
 
   @Binding var image: UIImage?
   var onDismiss: () -> Void
 
-  func makeUIViewController(context: Context) -> UIImagePickerController {
-    let picker = UIImagePickerController()
-    picker.sourceType = .camera
-    picker.delegate = context.coordinator
-    picker.allowsEditing = false
-    return picker
-  }
+  @State private var selectedItem: PhotosPickerItem?
 
-  func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-  func makeCoordinator() -> Coordinator {
-    Coordinator(parent: self)
-  }
-
-  final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-    let parent: CameraPicker
-
-    init(parent: CameraPicker) {
-      self.parent = parent
-    }
-
-    func imagePickerController(
-      _ picker: UIImagePickerController,
-      didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]
+  var body: some View {
+    PhotosPicker(
+      selection: $selectedItem,
+      matching: .images,
+      photoLibrary: .shared()
     ) {
-      if let img = info[.originalImage] as? UIImage {
-        parent.image = img
+      VStack(spacing: 12) {
+        Image(systemName: "photo.on.rectangle")
+          .font(.system(size: 40))
+        Text("選擇相簿照片")
+          .font(.headline)
       }
-      parent.dismiss()
-      parent.onDismiss()
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+    .onChange(of: selectedItem) { _, newItem in
+      guard let newItem else {
+        dismiss()
+        onDismiss()
+        return
+      }
 
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-      parent.dismiss()
-      parent.onDismiss()
+      Task {
+        if let data = try? await newItem.loadTransferable(type: Data.self),
+           let uiImage = UIImage(data: data) {
+          image = uiImage
+        }
+        dismiss()
+        onDismiss()
+      }
     }
   }
 }

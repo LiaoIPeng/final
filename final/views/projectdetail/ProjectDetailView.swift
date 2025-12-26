@@ -132,9 +132,7 @@ struct ProjectDetailView: View {
       Button("從相簿選取") {
         isShowingPhotosPicker = true
       }
-      Button("開啟相機拍照") {
-        isShowingCamera = true
-      }
+      
       Button("取消", role: .cancel) {}
     }
     .photosPicker(isPresented: $isShowingPhotosPicker, selection: $pickedItem, matching: .images)

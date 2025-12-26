@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		FC6F7DC62EF104CF00272E85 /* final.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = final.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FC6F7DC62EF104CF00272E85 /* final.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = final.app; path = "/Users/liaoipeng/Developer/final/build/Debug-iphoneos/final.app"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,16 +33,7 @@
 			isa = PBXGroup;
 			children = (
 				FC6F7DC82EF104CF00272E85 /* final */,
-				FC6F7DC72EF104CF00272E85 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		FC6F7DC72EF104CF00272E85 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				FC6F7DC62EF104CF00272E85 /* final.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -95,7 +86,7 @@
 			mainGroup = FC6F7DBD2EF104CF00272E85;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = FC6F7DC72EF104CF00272E85 /* Products */;
+			productRefGroup = FC6F7DBD2EF104CF00272E85;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (

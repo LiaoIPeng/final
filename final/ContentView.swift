@@ -29,6 +29,20 @@ struct ContentView: View {
       OverviewView(projects: $projects, dailyScores: $dailyScores)
         .tabItem { Label("總覽", systemImage: "gear") }
     }
+    .onAppear {
+      if let p: [Project] = LocalStore.load([Project].self, from: "projects.json") {
+        projects = p
+      }
+      if let s: [DailyScore] = LocalStore.load([DailyScore].self, from: "dailyScores.json") {
+        dailyScores = s
+      }
+    }
+    .onChange(of: projects) { _, newValue in
+      LocalStore.save(newValue, to: "projects.json")
+    }
+    .onChange(of: dailyScores) { _, newValue in
+      LocalStore.save(newValue, to: "dailyScores.json")
+    }
   }
 }
 
@@ -249,14 +263,16 @@ struct DailyPickView: View {
                 ProjectDetailView(projectID: project.id, projects: $projects)
               } label: {
                 VStack(alignment: .leading, spacing: 12) {
-                  if let latest = project.records.sorted(by: { $0.shotDate > $1.shotDate }).last,
-                     let uiImage = UIImage(data: latest.imageData) {
+                  if let latest = project.records.sorted(by: { $0.shotDate > $1.shotDate }).first,
+                     let uiImage = ImageStore.loadUIImage(filename: latest.imageFilename) {
+
                     Image(uiImage: uiImage)
                       .resizable()
                       .scaledToFill()
                       .frame(height: 220)
                       .clipped()
                       .clipShape(RoundedRectangle(cornerRadius: 16))
+
                   } else {
                     RoundedRectangle(cornerRadius: 16)
                       .fill(.secondary.opacity(0.15))

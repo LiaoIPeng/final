@@ -31,7 +31,7 @@ struct PhotoGridView: View {
           onTap(index)
         } label: {
           VStack(alignment: .leading, spacing: 6) {
-            if let uiImage = UIImage(data: record.imageData) {
+            if let uiImage = ImageStore.loadUIImage(filename: record.imageFilename) {
               Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()

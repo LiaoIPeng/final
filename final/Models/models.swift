@@ -10,7 +10,7 @@ import SwiftUI
 import PhotosUI
 import UIKit
 
-struct Project: Identifiable, Hashable {
+struct Project: Identifiable, Hashable, Codable {
   let id: UUID
   var name: String
   var category: String?
@@ -41,15 +41,15 @@ struct Project: Identifiable, Hashable {
   }
 }
 
-struct PhotoRecord: Identifiable, Hashable {
+struct PhotoRecord: Identifiable, Hashable, Codable {
   let id: UUID
-  var imageData: Data
+  var imageFilename: String
   var shotDate: Date
   var createdAt: Date
 
-  init(id: UUID = UUID(), imageData: Data, shotDate: Date, createdAt: Date = Date()) {
+  init(id: UUID = UUID(), imageFilename: String, shotDate: Date, createdAt: Date = Date()) {
     self.id = id
-    self.imageData = imageData
+    self.imageFilename = imageFilename
     self.shotDate = shotDate
     self.createdAt = createdAt
   }

@@ -36,7 +36,7 @@ struct PhotoPagerView: View {
             ForEach(records.indices, id: \.self) { idx in
               let record = records[idx]
               VStack(spacing: 12) {
-                if let uiImage = UIImage(data: record.imageData) {
+                if let uiImage = ImageStore.loadUIImage(filename: record.imageFilename) {
                   Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFit()

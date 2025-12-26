@@ -132,7 +132,7 @@ struct ProjectDetailView: View {
       Button("從相簿選取") {
         isShowingPhotosPicker = true
       }
-      
+
       Button("取消", role: .cancel) {}
     }
     .photosPicker(isPresented: $isShowingPhotosPicker, selection: $pickedItem, matching: .images)
@@ -169,12 +169,18 @@ struct ProjectDetailView: View {
           guard let idx = projectIndex else { return }
           guard let data = uiImage.jpegData(compressionQuality: 0.9) else { return }
           var project = projects[idx]
-          let record = PhotoRecord(imageData: data, shotDate: shotDate)
-          project.records.append(record)
-          projects[idx] = project
-          // reset
-          pendingImage = nil
-          pickedItem = nil
+
+          // ✅ 你貼的 do/catch 就放在這裡（取代舊那行）
+          do {
+            let filename = try ImageStore.saveJPG(data)
+            let record = PhotoRecord(imageFilename: filename, shotDate: shotDate)
+            project.records.append(record)
+            projects[idx] = project
+            pendingImage = nil
+            pickedItem = nil
+          } catch {
+            // 先不處理也沒關係
+          }
         },
         onCancel: {
           pendingImage = nil

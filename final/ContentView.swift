@@ -422,11 +422,17 @@ struct ResultsView: View {
                 ResultsRowView(project: project)
               }
             }
+            .onDelete(perform: deleteArchived)
           }
         }
       }
       .navigationTitle("成果")
     }
+  }
+
+  private func deleteArchived(at offsets: IndexSet) {
+    let idsToDelete = offsets.map { archivedProjects[$0].id }
+    projects.removeAll { idsToDelete.contains($0.id) }
   }
 }
 
